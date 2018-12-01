@@ -14,7 +14,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
         super(AdversarialConditionalLoss, self).__init__()
         self.gen = generator
         self.dis = discriminator
-        self.lambda_ = 0.1
+        self.lambda_ = 0.001
         self.loss = torch.nn.NLLLoss()
 
     def fake_or_real_forward(self, x, y, labels):

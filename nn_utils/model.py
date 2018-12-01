@@ -51,13 +51,10 @@ class UNet(torch.nn.Module):
     def forward(self, x, z=None):
         inputs = dict()
         for i in range(len(self.encoder)):
-            print(x.shape)
             inputs[i] = x
             x = self.encoder[str(i)](x)
 
-        print(self.encoder, self.decoder, {i: inputs[i].shape for i in inputs})
         for i in range(len(self.encoder)):
-            print(x.shape, i)
             x = self.decoder[str(len(self.encoder) - (i + 1))](x, inputs[len(self.encoder) - (i + 1)])
         return x
 

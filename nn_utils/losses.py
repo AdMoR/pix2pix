@@ -15,7 +15,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
         self.device = device
         self.gen = generator
         self.dis = discriminator
-        self.lambda_ = 0.1
+        self.lambda_ = 100
         self.loss = torch.nn.CrossEntropyLoss()
 
     def fake_or_real_forward(self, x, y, labels):

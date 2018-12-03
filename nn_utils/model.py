@@ -5,11 +5,16 @@ from torchvision import models
 
 class BasicEncoderBlock(nn.Module):
 
-    def __init__(self, in_, out_, act_fn, pool_fn=nn.MaxPool2d):
+    def __init__(self, in_, out_, act_fn=nn.ReLU, pool_fn=nn.MaxPool2d):
         super(BasicEncoderBlock, self).__init__()
-        self.conv = nn.Conv2d(in_, out_, 3, padding=1)
-        self.bn = nn.BatchNorm2d(out_)
-        self.act_fn = act_fn
+        self.op = nn.Sequential(
+            nn.Conv2d(in_, in_, 3, padding=1),
+            nn.BatchNorm2d(in_),
+            act_fn(inplace=True),
+            nn.Conv2d(in_, out_, 3, padding=1),
+            nn.BatchNorm2d(out_),
+            act_fn(inplace=True)
+        )
         if pool_fn is not None:
             self.pool = pool_fn(kernel_size=(2, 2), stride=2)
         else:
@@ -17,30 +22,35 @@ class BasicEncoderBlock(nn.Module):
 
     def forward(self, x):
         if self.pool is not None:
-            return self.pool(self.act_fn(self.bn(self.conv(x))))
+            return self.pool(self.op(x))
         else:
-            return self.act_fn(self.bn(self.conv(x)))
+            return self.op(x)
 
 
 class BasicDecoderBlock(torch.nn.Module):
 
     def __init__(self, in_, out_, act_fn):
         super(BasicDecoderBlock, self).__init__()
-        self.conv = nn.Conv2d(in_, out_, 3, padding=1)
-        self.bn = nn.BatchNorm2d(out_)
-        self.act_fn = act_fn
+        self.op = nn.Sequential(
+            nn.Conv2d(in_, in_, 3, padding=1),
+            nn.BatchNorm2d(in_),
+            act_fn(inplace=True),
+            nn.Conv2d(in_, out_, 3, padding=1),
+            nn.BatchNorm2d(out_),
+            act_fn(inplace=True)
+        )
 
     def forward(self, x, previous):
         x_prime = nn.functional.interpolate(x, scale_factor=(2, 2))
         combined = torch.cat([x_prime, previous], dim=1)
-        return self.act_fn(self.bn(self.conv(combined)))
+        return self.op(combined)
 
 
 class UNet(torch.nn.Module):
 
     def __init__(self, layers):
         super(UNet, self).__init__()
-        self.act_fn = nn.functional.relu
+        self.act_fn = nn.ReLU
         self.encoder = nn.ModuleDict()
         self.decoder = nn.ModuleDict()
 
@@ -64,7 +74,7 @@ class EncoderNet(nn.Module):
 
     def __init__(self, layers, n_classes=2):
         super(EncoderNet, self).__init__()
-        self.act_fn = nn.functional.relu
+        self.act_fn = nn.ReLU
         self.encoder = nn.ModuleDict()
 
         for i, (in_, out_) in enumerate(zip(layers[:-1], layers[1:])):
@@ -72,13 +82,16 @@ class EncoderNet(nn.Module):
         self.linear = nn.Linear(layers[-1], n_classes)
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
 
-    def forward(self, x, y):
-        z = torch.cat([x, y], dim=1)
+    def forward(self, x, y=None):
+        if y is not None:
+            z = torch.cat([x, y], dim=1)
+        else:
+            z = x
         for i in range(len(self.encoder)):
             z = self.encoder[str(i)](z)
         pooled_z = self.pool(z).view(x.shape[0], -1)
         return self.linear(pooled_z)
-        
+
 
 class AlexNet_finetune(nn.Module):
 

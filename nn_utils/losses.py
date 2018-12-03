@@ -16,12 +16,13 @@ class AdversarialConditionalLoss(torch.nn.Module):
         self.gen = generator
         self.dis = discriminator
         self.lambda_ = 100
-        self.loss = torch.nn.CrossEntropyLoss()
 
-    def fake_or_real_forward(self, x, y, labels):
-        discriminator_labels = self.dis(y, x)
-        loss_fake = self.loss(discriminator_labels, labels)
-        return loss_fake
+    def fake_or_real_forward(self, x, y, real=True):
+        discriminator_value = self.dis(y, x)
+        if real:
+            return torch.mean(torch.log(discriminator_value))
+        else:
+            return torch.mean(torch.log(1 - discriminator_value))
 
     def regularization(self, y, y_hat):
         return (1. / y.shape[0]) * torch.norm(y - y_hat, 1)
@@ -34,15 +35,15 @@ class AdversarialConditionalLoss(torch.nn.Module):
 
         y_hat = self.gen.forward(x, z)
 
-        fake_sample_loss = self.fake_or_real_forward(x, y_hat, torch.zeros(x.shape[0], dtype=label_type).to(device=self.device))
-        real_sample_loss = self.fake_or_real_forward(x, y, torch.ones(x.shape[0], dtype=label_type).to(device=self.device))
+        fake_sample_loss = self.fake_or_real_forward(x, y_hat, real=False)
+        real_sample_loss = self.fake_or_real_forward(x, y, real=True)
 
         if verbose:
             print("fake : ", fake_sample_loss, "real ", real_sample_loss)
         discriminator_loss = fake_sample_loss + real_sample_loss
 
 	# According to the paper, discriminator has its loss divided by 2
-        return discriminator_loss
+        return torch.mean(discriminator_loss)
 
     def generator_forward(self, x, y, z, verbose=False):
         x = x.to(self.device)
@@ -52,7 +53,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
 
         y_hat = self.gen.forward(x, z)
 
-        fake_sample_loss = self.fake_or_real_forward(x, y_hat, torch.zeros(x.shape[0], dtype=label_type).to(device=self.device))
+        fake_sample_loss = self.fake_or_real_forward(x, y_hat, real=True)
         regularisation = self.lambda_ * self.regularization(y, y_hat)
 
         if verbose:
@@ -60,7 +61,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
         generator_loss = -fake_sample_loss + regularisation
 
 	# According to the paper, discriminator has its loss divided by 2
-        return generator_loss
+        return torch.mean(generator_loss)
 
 
 class AdversarialLoss(AdversarialConditionalLoss):
@@ -69,8 +70,10 @@ class AdversarialLoss(AdversarialConditionalLoss):
     Discriminator checks that the x, y belongs to the a real sample
     """
 
-    def fake_or_real_forward(self, x, y, labels):
-        discriminator_labels = self.dis(y)
-        loss_fake = self.loss(discriminator_labels, labels)
-        return loss_fake
+    def fake_or_real_forward(self, x, y, real=True):
+        discriminator_value = self.dis(y)
+        if real:
+            return torch.mean(torch.log(discriminator_value))
+        else:
+            return torch.mean(torch.log(torch.ones_like(discriminator_value) - discriminator_value))
 

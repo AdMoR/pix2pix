@@ -67,12 +67,12 @@ class UNet(torch.nn.Module):
 
         for i in range(len(self.encoder)):
             x = self.decoder[str(len(self.encoder) - (i + 1))](x, inputs[len(self.encoder) - (i + 1)])
-        return torch.nn.functional.tanh(x)
+        return torch.sigmoid(x)
 
 
 class EncoderNet(nn.Module):
 
-    def __init__(self, layers, n_classes=2):
+    def __init__(self, layers, n_classes=1):
         super(EncoderNet, self).__init__()
         self.act_fn = nn.ReLU
         self.encoder = nn.ModuleDict()
@@ -90,17 +90,17 @@ class EncoderNet(nn.Module):
         for i in range(len(self.encoder)):
             z = self.encoder[str(i)](z)
         pooled_z = self.pool(z).view(x.shape[0], -1)
-        return self.linear(pooled_z)
+        return torch.sigmoid(self.linear(pooled_z))
 
 
 class AlexNet_finetune(nn.Module):
 
-    def __init__(self, n_classes=2):
+    def __init__(self, n_classes=1):
         super(AlexNet_finetune, self).__init__()
         self.features = models.alexnet(pretrained=True).features
         self.linear = torch.nn.Linear(9216, n_classes)
 
     def forward(self, x,):
         feature_x = self.features(x).view(x.shape[0], -1)
-        return self.linear(feature_x)
+        return torch.sigmoid(self.linear(feature_x))
 

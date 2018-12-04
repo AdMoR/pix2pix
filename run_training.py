@@ -27,11 +27,11 @@ path = "/data"
 my_dataset = ColorizationDataset(path, transform=train_transform)
 train_data = torch.utils.data.DataLoader(my_dataset, batch_size=32, shuffle=True, num_workers=4)
 gen = UNet([3, 20, 40, 80]).to(device=device)
-disc = EncoderNet([3, 40, 80, 160, 320]).to(device=device)
+disc = EncoderNet([6, 40, 80, 160, 320]).to(device=device)
 #disc = AlexNet_finetune().to(device=device)
 
 print(gen, disc)
-adv_loss = AdversarialLoss(gen, disc, device)
+adv_loss = AdversarialConditionalLoss(gen, disc, device)
 
 gen_optimizer = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.999))
 disc_optimizer = torch.optim.Adam(disc.linear.parameters(), lr=0.0002, betas=(0.5, 0.999))
@@ -39,10 +39,12 @@ disc_optimizer = torch.optim.Adam(disc.linear.parameters(), lr=0.0002, betas=(0.
 writer = tensorboardX.SummaryWriter(log_dir="./logs", comment="pix2pix")
 for e in range(100):
     for i, (x, y) in enumerate(train_data):
+        disc_optimizer.zero_grad()
         disc_loss = adv_loss.discriminator_forward(x, y, None, verbose=i % 100 == 0)
         disc_loss.backward()
         disc_optimizer.step()
 
+        gen_optimizer.zero_grad()
         gen_loss = adv_loss.generator_forward(x, y, None, verbose=i % 100 == 0)
         gen_loss.backward()
         gen_optimizer.step()

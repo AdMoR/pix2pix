@@ -20,9 +20,9 @@ class AdversarialConditionalLoss(torch.nn.Module):
     def fake_or_real_forward(self, x, y, real=True):
         discriminator_value = self.dis(y, x)
         if real:
-            return torch.mean(torch.log(discriminator_value))
+            return -torch.mean(torch.log(discriminator_value))
         else:
-            return torch.mean(torch.log(1 - discriminator_value))
+            return -torch.mean(torch.log(1 - discriminator_value))
 
     def regularization(self, y, y_hat):
         return (1. / y.shape[0]) * torch.norm(y - y_hat, 1)
@@ -73,7 +73,7 @@ class AdversarialLoss(AdversarialConditionalLoss):
     def fake_or_real_forward(self, x, y, real=True):
         discriminator_value = self.dis(y)
         if real:
-            return torch.mean(torch.log(discriminator_value))
+            return -torch.mean(torch.log(discriminator_value))
         else:
-            return torch.mean(torch.log(torch.ones_like(discriminator_value) - discriminator_value))
+            return -torch.mean(torch.log(torch.ones_like(discriminator_value) - discriminator_value))
 

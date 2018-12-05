@@ -1,11 +1,16 @@
 import torch
 import torchvision
+from skimage import color
 
 
 class ColorizationDataset(torchvision.datasets.ImageFolder):
 
     def __getitem__(self, index):
         x, _ = super(ColorizationDataset, self).__getitem__(index)
-        bw_x = torch.mean(x, dim=0).unsqueeze(0)
-        return torch.cat([bw_x] * 3, dim=0), x
-        
+        numpy_x = x.numpy()
+        swap_x = x.numpy().transpose(1, 2, 0)
+        lab_x = color.rgb2lab(swap_x).transpose(2, 0, 1)
+        x = torch.from_numpy(lab_x).type(torch.FloatTensor)
+        bw_x = x[0:1, :, :]
+        return bw_x, x
+

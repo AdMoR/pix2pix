@@ -8,9 +8,6 @@ class BasicEncoderBlock(nn.Module):
     def __init__(self, in_, out_, act_fn=nn.ReLU, pool_fn=nn.MaxPool2d):
         super(BasicEncoderBlock, self).__init__()
         self.op = nn.Sequential(
-            nn.Conv2d(in_, in_, 3, padding=1),
-            nn.BatchNorm2d(in_),
-            act_fn(inplace=True),
             nn.Conv2d(in_, out_, 3, padding=1),
             nn.BatchNorm2d(out_),
             act_fn(inplace=True)
@@ -32,9 +29,6 @@ class BasicDecoderBlock(torch.nn.Module):
     def __init__(self, in_, out_, act_fn):
         super(BasicDecoderBlock, self).__init__()
         self.op = nn.Sequential(
-            nn.Conv2d(in_, in_, 3, padding=1),
-            nn.BatchNorm2d(in_),
-            act_fn(inplace=True),
             nn.Conv2d(in_, out_, 3, padding=1),
             nn.BatchNorm2d(out_),
             act_fn(inplace=True)
@@ -48,7 +42,7 @@ class BasicDecoderBlock(torch.nn.Module):
 
 class UNet(torch.nn.Module):
 
-    def __init__(self, layers):
+    def __init__(self, layers, target_dim=3):
         super(UNet, self).__init__()
         self.act_fn = nn.ReLU
         self.encoder = nn.ModuleDict()
@@ -57,7 +51,10 @@ class UNet(torch.nn.Module):
         for i, (in_, out_) in enumerate(zip(layers[:-1], layers[1:])):
             self.encoder[str(i)] = BasicEncoderBlock(in_, out_, self.act_fn)
         for i, (in_, out_) in enumerate(zip(layers[1:], layers[:-1])):
-            self.decoder[str(i)] = BasicDecoderBlock(in_ + out_, out_, self.act_fn)
+            in_ += out_
+            if i == 0:
+                out_ = target_dim
+            self.decoder[str(i)] = BasicDecoderBlock(in_, out_, self.act_fn)
 
     def forward(self, x, z=None):
         inputs = dict()

@@ -1,6 +1,7 @@
 import pickle
 
 import tensorboardX
+from skimage import color
 import torch
 import torchvision
 import torchvision.utils as vutils
@@ -37,6 +38,14 @@ adv_loss = AdversarialConditionalLoss(gen, disc, device)
 gen_optimizer = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.999))
 disc_optimizer = torch.optim.Adam(disc.linear.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
+
+
+def lab_to_rgb(x):
+    for i in range(x.shape[0]):
+        swap_x = x[i, :, :, :].cpu().detach().numpy().transpose(1, 2, 0)
+        x[i, :, :, :] = torch.from_numpy(color.lab2rgb(swap_x).transpose(2, 0, 1))
+    return x
+
 writer = tensorboardX.SummaryWriter(log_dir="./logs", comment="pix2pix")
 for e in range(100):
     for i, (x, y) in enumerate(train_data):
@@ -52,7 +61,8 @@ for e in range(100):
 
         if i % 1000 == 0:
             writer.add_scalars("pix2pix/", {"Discriminator": disc_loss, "Generator loss": gen_loss}, e * len(train_data) + i)
-            viz = vutils.make_grid(torch.cat([y.to(device), gen(x.to(device))], dim=0))
+
+            viz = vutils.make_grid(torch.cat([lab_to_rgb(y).to(device), lab_to_rgb(gen(x.to(device)))], dim=0))
             viz = torch.clamp(viz, 0, 0.999999)
             writer.add_image('visu/', viz, e * len(train_data) + i)
             pickle.dump(gen, open("generator_unet_{}.pkl".format(e), "wb"))

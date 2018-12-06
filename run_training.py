@@ -8,6 +8,7 @@ import torchvision.utils as vutils
 import torchvision.transforms as transforms
 
 from dataset_handler.colorisation_dataset import ColorizationDataset
+from dataset_handler.double_image_dataset import DoubleImageDataset
 from nn_utils.model import UNet, EncoderNet, AlexNet_finetune
 from nn_utils.colorisation_model import ColorUNet
 from nn_utils.losses import AdversarialConditionalLoss, AdversarialLoss
@@ -26,7 +27,8 @@ train_transform = transforms.Compose(
                        transforms.ToTensor()])
 path = "/data"
 
-my_dataset = ColorizationDataset(path, transform=train_transform)
+#my_dataset = ColorizationDataset(path, transform=train_transform)
+my_dataset = DoubleImageDataset(path, transform=train_transform)
 train_data = torch.utils.data.DataLoader(my_dataset, batch_size=8, shuffle=True, num_workers=2)
 gen = ColorUNet().to(device=device)
 disc = EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device)

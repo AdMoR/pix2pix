@@ -9,8 +9,9 @@ import torchvision.transforms as transforms
 
 from dataset_handler.colorisation_dataset import ColorizationDataset
 from dataset_handler.double_image_dataset import DoubleImageDataset
+from dataset_handler.edge2img_dataset import EdgesDataset
 from nn_utils.model import UNet, EncoderNet, AlexNet_finetune
-#from nn_utils.colorisation_model import ColorUNet
+from nn_utils.colorisation_model import ColorUNet
 from nn_utils.losses import AdversarialConditionalLoss, AdversarialLoss
 
 if torch.cuda.is_available():
@@ -19,19 +20,20 @@ else:
     device = torch.device('cpu')
 
 train_transform = transforms.Compose(
-                      [transforms.Resize((256, 256)),
-                       #transforms.RandomResizedCrop(224),
+                      [#transforms.Resize((256, 256)),
+                       transforms.RandomResizedCrop(512),
                        transforms.RandomHorizontalFlip(),
                        torchvision.transforms.ColorJitter(0.1, 0.1, 0.1),
                        #torchvision.transforms.RandomAffine(5, [0.1, 0.1], [0.95, 1.05]),
                        transforms.ToTensor()])
-path = "/data"
+path = "/data/paintings"
 
 #my_dataset = ColorizationDataset(path, transform=train_transform)
-my_dataset = DoubleImageDataset(path, transform=train_transform)
-train_data = torch.utils.data.DataLoader(my_dataset, batch_size=8, shuffle=True, num_workers=2)
+my_dataset = EdgesDataset(path, transform=train_transform)
+#my_dataset = DoubleImageDataset(path, transform=train_transform)
+train_data = torch.utils.data.DataLoader(my_dataset, batch_size=3, shuffle=True, num_workers=2)
 #gen = ColorUNet().to(device=device)
-gen = UNet([3, 64, 128, 256, 512, 512, 512, 512, 512], target_dim=3).to(device=device)
+gen = UNet([1,  64, 128, 256, 256, 512, 512, 512, 512, 512], target_dim=3).to(device=device)
 disc = EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device)
 #disc = AlexNet_finetune().to(device=device)
 
@@ -45,12 +47,12 @@ disc_optimizer = torch.optim.Adam(disc.linear.parameters(), lr=0.0002, betas=(0.
 
 def lab_to_rgb(x):
     for i in range(x.shape[0]):
-        swap_x = x[i, :, :, :].cpu().detach().numpy().transpose(1, 2, 0)
+        swap_x = 100 * x[i, :, :, :].cpu().detach().numpy().transpose(1, 2, 0)
         x[i, :, :, :] = torch.from_numpy(color.lab2rgb(swap_x).transpose(2, 0, 1))
     return x
 
 writer = tensorboardX.SummaryWriter(log_dir="./logs", comment="pix2pix")
-for e in range(100):
+for e in range(10000):
     for i, (x, y) in enumerate(train_data):
         disc_optimizer.zero_grad()
         disc_loss = adv_loss.discriminator_forward(x, y, None, verbose=i % 1000 == 0)
@@ -65,10 +67,14 @@ for e in range(100):
         if i % 1000 == 0:
             writer.add_scalars("pix2pix/", {"Discriminator": disc_loss, "Generator loss": gen_loss}, e * len(train_data) + i)
 
-            viz = vutils.make_grid(torch.cat([lab_to_rgb(y).to(device), lab_to_rgb(gen(x.to(device)))], dim=0))
+            gray_scale = torch.cat([x for _ in range(3)], dim=1)
+            #viz = vutils.make_grid(torch.cat([y.to(device), gen(x.to(device)), gray_scale.to(device)], dim=0))
+            viz = vutils.make_grid(torch.cat([lab_to_rgb(y).to(device), lab_to_rgb(gen(x.to(device))),  gray_scale.to(device)], dim=0))
             viz = torch.clamp(viz, 0, 0.999999)
             writer.add_image('visu/', viz, e * len(train_data) + i)
-            pickle.dump(gen, open("generator_unet_{}.pkl".format(e), "wb"))
+
+    if e % 100 == 0:
+        pickle.dump(gen, open("generator_unet_{}.pkl".format(e), "wb"))
 
 
 

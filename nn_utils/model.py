@@ -64,7 +64,7 @@ class UNet(torch.nn.Module):
 
         for i in range(len(self.encoder)):
             x = self.decoder[str(len(self.encoder) - (i + 1))](x, inputs[len(self.encoder) - (i + 1)])
-        return torch.sigmoid(x)
+        return torch.tanh(x)
 
 
 class EncoderNet(nn.Module):

@@ -71,13 +71,12 @@ class EncoderNet(nn.Module):
 
     def __init__(self, layers, n_classes=1):
         super(EncoderNet, self).__init__()
-        self.act_fn = nn.ReLU
+        self.act_fn = nn.LeakyReLU
         self.encoder = nn.ModuleDict()
 
         for i, (in_, out_) in enumerate(zip(layers[:-1], layers[1:])):
             self.encoder[str(i)] = BasicEncoderBlock(in_, out_, self.act_fn)
-        self.linear = nn.Linear(layers[-1], n_classes)
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.linearizer = nn.Conv2d(layers[-1], n_classes, 3)
 
     def forward(self, x, y=None):
         if y is not None:
@@ -86,8 +85,8 @@ class EncoderNet(nn.Module):
             z = x
         for i in range(len(self.encoder)):
             z = self.encoder[str(i)](z)
-        pooled_z = self.pool(z).view(x.shape[0], -1)
-        return torch.sigmoid(self.linear(pooled_z))
+        z = self.linearizer(z)
+        return torch.sigmoid(z)
 
 
 class AlexNet_finetune(nn.Module):

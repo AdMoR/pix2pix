@@ -41,7 +41,7 @@ print(gen, disc)
 adv_loss = AdversarialConditionalLoss(gen, disc, device)
 
 gen_optimizer = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.999))
-disc_optimizer = torch.optim.Adam(disc.linear.parameters(), lr=0.0002, betas=(0.5, 0.999))
+disc_optimizer = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
 
 

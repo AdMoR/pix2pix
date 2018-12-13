@@ -21,5 +21,5 @@ class TestEncoder(TestCase):
         self.model = EncoderNet([6, 10, 20, 40])
 
     def test_encoder_net(self):
-        res = self.model.forward(torch.randn((2, 3, 224, 224)), torch.randn((2, 3, 224, 224)))
+        res, _ = self.model.forward(torch.randn((2, 3, 224, 224)), torch.randn((2, 3, 224, 224)))
         self.assertEqual(res.shape, (2, 1, 26, 26), "Bad shape")

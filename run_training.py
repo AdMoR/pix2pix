@@ -35,14 +35,12 @@ train_data = torch.utils.data.DataLoader(my_dataset, batch_size=3, shuffle=True,
 #gen = ColorUNet().to(device=device)
 gen = UNet([1,  64, 128, 256, 256, 512, 512, 512, 512, 512], target_dim=3).to(device=device)
 disc = EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device)
-#disc = AlexNet_finetune().to(device=device)
 
 print(gen, disc)
-adv_loss = AdversarialConditionalLoss(gen, disc, device)
+adv_loss = AdversarialConditionalLoss(gen, disc, device, loss="L2")
 
 gen_optimizer = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.999))
 disc_optimizer = torch.optim.Adam(disc.parameters(), lr=0.0002, betas=(0.5, 0.999))
-
 
 
 def lab_to_rgb(x):
@@ -50,6 +48,7 @@ def lab_to_rgb(x):
         swap_x = 100 * x[i, :, :, :].cpu().detach().numpy().transpose(1, 2, 0)
         x[i, :, :, :] = torch.from_numpy(color.lab2rgb(swap_x).transpose(2, 0, 1))
     return x
+
 
 writer = tensorboardX.SummaryWriter(log_dir="./logs", comment="pix2pix")
 for e in range(10000):

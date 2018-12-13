@@ -78,15 +78,20 @@ class EncoderNet(nn.Module):
             self.encoder[str(i)] = BasicEncoderBlock(in_, out_, self.act_fn)
         self.linearizer = nn.Conv2d(layers[-1], n_classes, 3)
 
-    def forward(self, x, y=None):
+    def forward(self, x, y=None, keep_intermediate=False):
+        outputs = {}
         if y is not None:
             z = torch.cat([x, y], dim=1)
         else:
             z = x
         for i in range(len(self.encoder)):
+            if keep_intermediate:
+                outputs[i] = z
             z = self.encoder[str(i)](z)
+
         z = self.linearizer(z)
-        return torch.sigmoid(z)
+
+        return torch.sigmoid(z), outputs
 
 
 class ResidualTransformer(nn.Module):

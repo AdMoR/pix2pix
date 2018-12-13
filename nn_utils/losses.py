@@ -17,16 +17,16 @@ class AdversarialConditionalLoss(torch.nn.Module):
         self.dis = discriminator
         self.lambda_ = 10
         if loss == "L2":
-            self.loss = lambda x: torch.norm(x, 2)
+            self.loss = lambda x, real:\
+                torch.mean(x - int(real) * torch.ones_like(x).to(self.device), 2)
         else:
-            self.loss = lambda x: -torch.mean(torch.log(x))
+            self.loss = lambda x, real:\
+                -torch.mean(torch.log(x)) if real\
+                else -torch.mean(torch.ones_like(x).to(self.device) - torch.log(x))
 
     def fake_or_real_forward(self, x, y, real=True):
         discriminator_value, dis_layers = self.dis(y, x, keep_intermediate=True)
-        if real:
-            return self.loss(discriminator_value), dis_layers
-        else:
-            return self.loss(1 - discriminator_value), dis_layers
+        return self.loss(discriminator_value, real), dis_layers
 
     def regularization(self, y, y_hat):
         return (1. / y.shape[0]) * torch.norm(y - y_hat, 1)

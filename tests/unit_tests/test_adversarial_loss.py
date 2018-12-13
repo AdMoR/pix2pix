@@ -11,13 +11,14 @@ class TestUNet(TestCase):
     def setUp(self):
         self.gen = UNet([3, 10, 20, 40])
         self.disc = EncoderNet([6, 20, 40, 60])
-        self.adv_loss = AdversarialConditionalLoss(self.gen, self.disc)
+        self.adv_loss = AdversarialConditionalLoss(self.gen, self.disc, loss="L2")
 
     def test_full_forward(self):
         x = torch.randn((1, 3, 224, 224))
         y = torch.randn((1, 3, 224, 224))
 
         gen_loss = self.adv_loss.generator_forward(x, y, None)
+        print("gen loss", gen_loss)
 
     def test_backward(self):
         x = torch.randn((1, 3, 224, 224))
@@ -34,4 +35,4 @@ class TestUNet(TestCase):
         disc_loss.backward()
         disc_optimizer.step()
 
-        
+

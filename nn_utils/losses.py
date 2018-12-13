@@ -10,19 +10,23 @@ class AdversarialConditionalLoss(torch.nn.Module):
     Discriminator checks that the x, y belongs to the a real sample
     """
 
-    def __init__(self, generator, discriminator, device=torch.device('cpu')):
+    def __init__(self, generator, discriminator, device=torch.device('cpu'), loss=None):
         super(AdversarialConditionalLoss, self).__init__()
         self.device = device
         self.gen = generator
         self.dis = discriminator
         self.lambda_ = 100
+        if loss == "L2":
+            self.loss = lambda x: torch.norm(x, 2)
+        else:
+            self.loss = lambda x: -torch.mean(torch.log(x))
 
     def fake_or_real_forward(self, x, y, real=True):
         discriminator_value = self.dis(y, x)
         if real:
-            return -torch.mean(torch.log(discriminator_value))
+            return -self.loss(discriminator_value)
         else:
-            return -torch.mean(torch.log(1 - discriminator_value))
+            return -self.loss(1 - discriminator_value)
 
     def regularization(self, y, y_hat):
         return (1. / y.shape[0]) * torch.norm(y - y_hat, 1)

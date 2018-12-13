@@ -5,10 +5,10 @@ from torchvision import models
 
 class BasicEncoderBlock(nn.Module):
 
-    def __init__(self, in_, out_, act_fn=nn.ReLU, pool_fn=nn.MaxPool2d):
+    def __init__(self, in_, out_, act_fn=nn.ReLU, pool_fn=nn.MaxPool2d, stride=1):
         super(BasicEncoderBlock, self).__init__()
         self.op = nn.Sequential(
-            nn.Conv2d(in_, out_, 3, padding=1),
+            nn.Conv2d(in_, out_, 3, padding=1, stride=stride),
             nn.BatchNorm2d(out_),
             act_fn(inplace=True)
         )
@@ -89,14 +89,45 @@ class EncoderNet(nn.Module):
         return torch.sigmoid(z)
 
 
-class AlexNet_finetune(nn.Module):
+class ResidualTransformer(nn.Module):
 
-    def __init__(self, n_classes=1):
-        super(AlexNet_finetune, self).__init__()
-        self.features = models.alexnet(pretrained=True).features
-        self.linear = torch.nn.Linear(9216, n_classes)
+    def __init__(self, encoder_layers=[], residual_layers=[]):
+        decoder_layers = list(reversed(encoder_layers))
+        self.encoder = torch.Sequential(
+            [
+                BasicEncoderBlock(
+                    encoder_layers[i],
+                    encoder_layers[i + 1],
+                    pool_fn=None,
+                    stride=1 if i == 0 else 2
+                )
+                for i in range(len(encoder_layers) - 1)
+            ]
+        )
+        self.res_block = torch.Sequential(
+            [
+                BasicEncoderBlock(
+                    residual_layers[i],
+                    residual_layers[i + 1],
+                    pool_fn=None,
+                    stride=1
+                )
+                for i in range(len(residual_layers) - 1)
+            ]
+        )
+        self.decoder = torch.Sequential(
+            [
+                BasicEncoderBlock(
+                    residual_layers[i + 1],
+                    residual_layers[i],
+                    pool_fn=None,
+                    stride=1 if i == 0 else 0.5
+                )
+                for i in reversed(range(len(residual_layers) - 1))
+            ]
+        )
+        self.process = torch.Sequential([self.encoder, self.res_block, self.decoder])
 
-    def forward(self, x,):
-        feature_x = self.features(x).view(x.shape[0], -1)
-        return torch.sigmoid(self.linear(feature_x))
+    def forward(self, x):
+        return self.process(x)
 

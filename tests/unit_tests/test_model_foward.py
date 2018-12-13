@@ -11,8 +11,8 @@ class TestUNet(TestCase):
         self.model = UNet([3, 10, 20, 40])
 
     def test_forward(self):
-        res = self.model.forward(torch.randn((10, 3, 2**10, 2**10)))
-        self.assertEqual(res.shape, (10, 3, 2**10, 2**10), "Bad shape")
+        res = self.model.forward(torch.randn((1, 3, 2**10, 2**10)))
+        self.assertEqual(res.shape, (1, 3, 2**10, 2**10), "Bad shape")
 
 
 class TestEncoder(TestCase):

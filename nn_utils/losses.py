@@ -35,7 +35,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
         return (1. / len(fake_features)) * sum(
             [torch.norm(fake_features[i] - real_features[i], 1 if i == 0 else 2)
              for i in range(len(fake_features))],
-            torch.zeros(1)
+            torch.zeros(1).to(self.device)
         )
 
     def discriminator_forward(self, x, y, z, verbose=False):

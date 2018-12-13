@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 from dataset_handler.colorisation_dataset import ColorizationDataset
 from dataset_handler.double_image_dataset import DoubleImageDataset
 from dataset_handler.edge2img_dataset import EdgesDataset
-from nn_utils.model import UNet, EncoderNet, AlexNet_finetune
+from nn_utils.model import UNet, EncoderNet
 from nn_utils.colorisation_model import ColorUNet
 from nn_utils.losses import AdversarialConditionalLoss, AdversarialLoss
 

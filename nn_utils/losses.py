@@ -18,7 +18,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
         self.lambda_ = 10
         if loss == "L2":
             self.loss = lambda x, real:\
-                torch.mean(x - int(real) * torch.ones_like(x).to(self.device), 2)
+                torch.mean(torch.norm(x - int(real) * torch.ones_like(x).to(self.device), 2))
         else:
             self.loss = lambda x, real:\
                 -torch.mean(torch.log(x)) if real\

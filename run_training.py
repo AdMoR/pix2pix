@@ -26,7 +26,7 @@ train_transform = transforms.Compose(
                        torchvision.transforms.ColorJitter(0.1, 0.1, 0.1),
                        #torchvision.transforms.RandomAffine(5, [0.1, 0.1], [0.95, 1.05]),
                        transforms.ToTensor()])
-path = "/data/paintings"
+path = "/data"
 
 #my_dataset = ColorizationDataset(path, transform=train_transform)
 my_dataset = EdgesDataset(path, transform=train_transform)
@@ -63,7 +63,7 @@ for e in range(10000):
         gen_loss.backward()
         gen_optimizer.step()
 
-        if i % 1000 == 0:
+        if i % 10 == 0:
             writer.add_scalars("pix2pix/", {"Discriminator": disc_loss, "Generator loss": gen_loss}, e * len(train_data) + i)
 
             gray_scale = torch.cat([x for _ in range(3)], dim=1)
@@ -72,7 +72,7 @@ for e in range(10000):
             viz = torch.clamp(viz, 0, 0.999999)
             writer.add_image('visu/', viz, e * len(train_data) + i)
 
-    if e % 100 == 0:
+    if e % 10 == 0:
         pickle.dump(gen, open("generator_unet_{}.pkl".format(e), "wb"))
 
 

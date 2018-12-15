@@ -3,10 +3,10 @@ from unittest import TestCase
 import torch
 
 from nn_utils.model import UNet, EncoderNet
-from nn_utils.losses import AdversarialConditionalLoss
+from nn_utils.gan_losses import AdversarialConditionalLoss
 
 
-class TestUNet(TestCase):
+class TestAdvLoss(TestCase):
 
     def setUp(self):
         self.gen = UNet([3, 10, 20, 40])

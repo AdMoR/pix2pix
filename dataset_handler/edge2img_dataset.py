@@ -4,8 +4,10 @@ import cv2
 import numpy as np
 from skimage import color
 
+from .abstract_dataset import AbstractDataset
 
-class EdgesDataset(torchvision.datasets.ImageFolder):
+
+class EdgesDataset(AbstractDataset):
 
     def __getitem__(self, index):
         x, _ = super(EdgesDataset, self).__getitem__(index)

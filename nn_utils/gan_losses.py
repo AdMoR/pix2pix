@@ -18,7 +18,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
         self.lambda_ = 10
         if loss == "L2":
             self.loss = lambda x, real:\
-                torch.mean(torch.norm(x - int(real) * torch.ones_like(x).to(self.device), 2))
+                torch.norm(x - int(real) * torch.ones_like(x).to(self.device), 2)
         else:
             self.loss = lambda x, real:\
                 -torch.mean(torch.log(x)) if real\
@@ -33,7 +33,7 @@ class AdversarialConditionalLoss(torch.nn.Module):
 
     def discr_layer_regularization(self, fake_features, real_features):
         return (1. / len(fake_features)) * sum(
-            [torch.norm(fake_features[i] - real_features[i], 1 if i == 0 else 2)
+            [torch.norm(fake_features[i] - real_features[i], 1)
              for i in range(len(fake_features))],
             torch.zeros(1).to(self.device)
         )
@@ -64,8 +64,8 @@ class AdversarialConditionalLoss(torch.nn.Module):
 
         y_hat = self.gen.forward(x, z)
 
-        fake_sample_loss, dis_fake_layers = self.fake_or_real_forward(x, y_hat, real=False)
-        real_sample_loss, dis_real_layers = self.fake_or_real_forward(x, y, real=True)
+        fake_sample_loss, dis_fake_layers = self.fake_or_real_forward(x, y_hat, real=True)
+        _, dis_real_layers = self.fake_or_real_forward(x, y, real=True)
 
         # We can do a simple L1 loss btw original image and generated
         if not dis_real_layers:

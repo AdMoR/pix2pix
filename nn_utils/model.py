@@ -91,7 +91,7 @@ class EncoderNet(nn.Module):
 
         z = self.linearizer(z)
 
-        return torch.sigmoid(z), outputs
+        return z, outputs
 
 
 class ResidualTransformer(nn.Module):

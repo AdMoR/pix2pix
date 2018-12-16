@@ -17,7 +17,7 @@ class TestAdvLoss(TestCase):
         x = torch.randn((1, 3, 224, 224))
         y = torch.randn((1, 3, 224, 224))
 
-        gen_loss = self.adv_loss.generator_forward(x, y, None)
+        gen_loss, _, _ = self.adv_loss.forward(x, y, None, discriminator=False)
         print("gen loss", gen_loss)
 
     def test_backward(self):
@@ -26,8 +26,8 @@ class TestAdvLoss(TestCase):
         gen_optimizer = torch.optim.SGD(self.gen.parameters(), lr=0.0001)
         disc_optimizer = torch.optim.SGD(self.disc.parameters(), lr=0.0001)
 
-        disc_loss = self.adv_loss.discriminator_forward(x, y, None)
-        gen_loss = self.adv_loss.generator_forward(x, y, None)
+        disc_loss, _, _ = self.adv_loss.forward(x, y, None, discriminator=False)
+        gen_loss,_,_ = self.adv_loss.forward(x, y, None, discriminator=True)
 
         gen_loss.backward()
         gen_optimizer.step()

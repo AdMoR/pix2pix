@@ -1,8 +1,6 @@
 import torch
 import torchvision
 
-label_type = torch.int64
-
 
 class PerceptualModel(torch.nn.Module):
 
@@ -12,7 +10,7 @@ class PerceptualModel(torch.nn.Module):
         blocks = [0] + [i for i in range(len(features)) if features[i].__class__.__name__ == "MaxPool2d" ]
         self.model_blocks = [torch.nn.Sequential(features[blocks[i]: blocks[i + 1]]) for i in range(len(blocks) - 1)]
 
-    def forward(self, x):
+    def forward(self, x, *args, **kwargs):
         outs = list()
         for block in self.model_blocks:
             x = block(x)
@@ -35,8 +33,7 @@ class PerceptualLoss(torch.nn.Module):
     def forward(self, x_1, x_2):
         if type(x_1) != list:
             x_1, x_2 = self.model(x_1), self.model(x_2)
-        return (1. / len(x_1)) * sum(
-            [torch.norm(x_1[i] - x_2[i], 1)
-             for i in range(len(x_1))],
-            torch.zeros(1).to(self.device)
+        return (1. / len(x_1)) * torch.sum(torch.cat(
+             [torch.norm(x_1[i] - x_2[i], 1)
+             for i in range(len(x_1))])
         )

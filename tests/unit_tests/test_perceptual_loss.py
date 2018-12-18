@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, skip
 
 import torch
 import torchvision
@@ -13,10 +13,12 @@ class TestPerceptualLoss(TestCase):
     def setUpClass(cls):
         cls.loss = PerceptualLoss(model=torchvision.models.alexnet)
 
+    @skip
     def test_basic_forward(self):
         loss = self.loss.forward(torch.randn((1, 3, 224, 224)), torch.randn((1, 3, 224, 224)))
         self.assertGreaterEqual(float(loss), 0)
 
+    @skip
     def test_list_forward(self):
         tensor_list = [torch.randn((1, 3, 224, 224)), torch.randn((1, 3, 224, 224))]
         loss = self.loss.forward(tensor_list, tensor_list)

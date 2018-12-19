@@ -12,7 +12,7 @@ from torch.utils import data
 
 
 def recursive_glob(rootdir=".", suffix=""):
-    """Performs recursive glob with given suffix and rootdir 
+    """Performs recursive glob with given suffix and rootdir
         :param rootdir is the root directory
         :param suffix is the suffix to be searched
     """
@@ -131,15 +131,17 @@ class EdgeADE20k(ADE20KLoader):
 
     def __init__(self, *args, **kwargs):
         super(EdgeADE20k, self).__init__(*args, **kwargs)
-
-        filters = torch.cat([torch.from_numpy(np.array([[-1, 0, 1], [0, 1, 0], [0, -1, 0]])).unsqueeze(0).unsqueeze(0) for _ in range(3)], dim=0)
-        self.weight = filters
+        filters = torch.cat(
+            [torch.from_numpy(np.array([[-1, 0, 1], [0, 1, 0], [0, -1, 0]])).unsqueeze(0).unsqueeze(0)],
+            dim=0)
+        self.weight = filters.float()
 
     def __getitem__(self, index):
         img, lbl = super(EdgeADE20k, self).__getitem__(index)
-        lbl = torch.abs(F.conv2d(lbl, self.weight, padding=1, groups=3))
+        print(lbl.shape, img.shape)
+        lbl = torch.abs(F.conv2d(lbl.float().unsqueeze(0).unsqueeze(0), self.weight, padding=1, groups=1))
         lbl[lbl > 0] = 1
-        return img, lbl
+        return img, lbl.squeeze(0).squeeze(0).long()
 
 
 if __name__ == "__main__":

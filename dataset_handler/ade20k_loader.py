@@ -1,4 +1,5 @@
 import os
+import random
 import collections
 import torch
 import torch.nn.functional as F
@@ -8,6 +9,8 @@ import scipy.misc as m
 import matplotlib.pyplot as plt
 
 from torch.utils import data
+
+from .abstract_dataset import AbstractDataset
 
 
 
@@ -25,7 +28,7 @@ def recursive_glob(rootdir=".", suffix=""):
 
 
 
-class ADE20KLoader(data.Dataset):
+class ADE20KLoader(AbstractDataset):
     def __init__(
         self,
         root,
@@ -78,22 +81,22 @@ class ADE20KLoader(data.Dataset):
         img = m.imresize(
             img, (self.img_size[0], self.img_size[1])
         )  # uint8 with RGB mode
-        img = img[:, :, ::-1]  # RGB -> BGR
+        #img = img[:, :, ::-1]  # RGB -> BGR
         img = img.astype(np.float64)
-        img -= self.mean
-        if self.img_norm:
-            # Resize scales images from 0 to 255, thus we need
-            # to divide by 255.0
-            img = img.astype(float) / 255.0
+        #img -= self.mean
+        #if self.img_norm:
+        # Resize scales images from 0 to 255, thus we need
+        # to divide by 255.0
+        img = img.astype(float) / 255.0
         # NHWC -> NCHW
         img = img.transpose(2, 0, 1)
 
         lbl = self.encode_segmap(lbl)
-        classes = np.unique(lbl)
+        #classes = np.unique(lbl)
         lbl = lbl.astype(float)
         lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), "nearest", mode="F")
         lbl = lbl.astype(int)
-        assert np.all(classes == np.unique(lbl))
+        #assert np.all(classes == np.unique(lbl))
 
         img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()
@@ -129,6 +132,14 @@ class ADE20KLoader(data.Dataset):
 
 class EdgeADE20k(ADE20KLoader):
 
+    @classmethod
+    def build_visu(cls, writer, gen, x, y, device, index):
+        gray_scale = torch.cat([x for _ in range(3)], dim=1)
+        viz = vutils.make_grid(torch.cat([cls.lab_to_rgb(y).to(device), cls.lab_to_rgb(gen(x.to(device))),  gray_scale.to(device)], dim=0))
+        viz = torch.clamp(viz, -0.9999999, 0.999999)
+        writer.add_image('visu/', viz, index)
+
+
     def __init__(self, *args, **kwargs):
         super(EdgeADE20k, self).__init__(*args, **kwargs)
         filters = torch.cat(
@@ -137,11 +148,13 @@ class EdgeADE20k(ADE20KLoader):
         self.weight = filters.float()
 
     def __getitem__(self, index):
-        img, lbl = super(EdgeADE20k, self).__getitem__(index)
-        print(lbl.shape, img.shape)
-        lbl = torch.abs(F.conv2d(lbl.float().unsqueeze(0).unsqueeze(0), self.weight, padding=1, groups=1))
-        lbl[lbl > 0] = 1
-        return img, lbl.squeeze(0).squeeze(0).long()
+        try:
+            img, lbl = super(EdgeADE20k, self).__getitem__(index)
+            lbl = torch.abs(F.conv2d(lbl.float().unsqueeze(0).unsqueeze(0), self.weight, padding=1, groups=1))
+            lbl[lbl > 0] = 1
+            return lbl.squeeze(0), img
+        except:
+            return self.__getitem__(random.randint(0, self.__len__()))
 
 
 if __name__ == "__main__":

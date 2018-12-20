@@ -1,4 +1,5 @@
 import pickle
+import os
 
 import tensorboardX
 from skimage import color
@@ -9,6 +10,7 @@ import torchvision.transforms as transforms
 
 from dataset_handler.colorisation_dataset import ColorizationDataset
 from dataset_handler.double_image_dataset import DoubleImageDataset
+from dataset_handler.ade20k_loader import EdgeADE20k
 from dataset_handler.edge2img_dataset import EdgesDataset
 from nn_utils.model import UNet, EncoderNet
 from nn_utils.colorisation_model import ColorUNet
@@ -29,15 +31,16 @@ train_transform = transforms.Compose(
                        transforms.ToTensor()])
 path = "/data/paintings"
 
-my_dataset = ColorizationDataset(path, transform=train_transform)
+my_dataset = EdgeADE20k(path, is_transform=True)
+#my_dataset = ColorizationDataset(path, transform=train_transform)
 #my_dataset = EdgesDataset(path, transform=train_transform)
 #my_dataset = DoubleImageDataset(path, transform=train_transform)
 train_data = torch.utils.data.DataLoader(my_dataset, batch_size=2, shuffle=True, num_workers=2)
-gen = ColorUNet().to(device=device)
-#gen = UNet([1,  64, 128, 256, 256, 512, 512, 512, 512, 512], target_dim=3).to(device=device)
-disc = EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device)
+#gen = ColorUNet().to(device=device)
+gen = UNet([1,  64, 128, 256, 256, 512, 512, 512, 512, 512], target_dim=3).to(device=device)
+#disc = EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device)
 
-print(gen, disc)
+print(gen)
 adv_loss = CombinedGANLoss([
     AdversarialConditionalLoss(gen, EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device), device=device, loss="L2"),
     AdversarialConditionalLoss(gen, EncoderNet([4, 64, 128, 256, 256, 512, 512, 512]).to(device=device), device=device, loss="L2"),
@@ -45,7 +48,6 @@ adv_loss = CombinedGANLoss([
 
 gen_optimizer = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.999))
 disc_optimizer = torch.optim.Adam(adv_loss.disc_parameters(), lr=0.0002, betas=(0.5, 0.999))
-
 
 
 writer = tensorboardX.SummaryWriter(log_dir="./logs", comment="pix2pix")
@@ -66,7 +68,7 @@ for e in range(10000):
             my_dataset.build_visu(writer, gen, x, y, device, e * len(train_data) + i)
 
     if e % 10 == 0:
-        pickle.dump(gen, open("generator_unet_{}.pkl".format(e), "wb"))
+        pickle.dump(gen, open("generator_unet_{}_{}.pkl".format(os.path.basename(path), e), "wb"))
 
 
 

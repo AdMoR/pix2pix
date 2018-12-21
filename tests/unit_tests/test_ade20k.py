@@ -2,10 +2,21 @@ from unittest import TestCase
 
 import torch
 
-from dataset_handler.ade20k_loader import EdgeADE20k
+from dataset_handler.ade20k_loader import EdgeADE20k, NormalADE20k
+
 
 
 class TestADE20k(TestCase):
+
+    def setUp(self):
+        self.data = NormalADE20k("/Users/amorvan/mount_ubuntu/databases/ADE20K_2016_07_26/", is_transform=True)
+
+    def test(self):
+        x, y = self.data.__getitem__(0)
+        print(self.data.build_x_img(x).shape)
+
+
+class TestEdgeADE20k(TestCase):
 
     def setUp(self):
         self.data = EdgeADE20k("/Users/amorvan/mount_ubuntu/databases/ADE20K_2016_07_26/", is_transform=True)

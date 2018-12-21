@@ -9,6 +9,7 @@ import scipy.misc as m
 import matplotlib.pyplot as plt
 
 from torch.utils import data
+import torchvision.utils as vutils
 
 from .abstract_dataset import AbstractDataset
 
@@ -29,6 +30,9 @@ def recursive_glob(rootdir=".", suffix=""):
 
 
 class ADE20KLoader(AbstractDataset):
+
+    n_classes = 150
+
     def __init__(
         self,
         root,
@@ -43,7 +47,6 @@ class ADE20KLoader(AbstractDataset):
         self.is_transform = is_transform
         self.augmentations = augmentations
         self.img_norm = img_norm
-        self.n_classes = 150
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size)
         )
@@ -109,13 +112,14 @@ class ADE20KLoader(AbstractDataset):
         label_mask = (mask[:, :, 0] / 10.0) * 256 + mask[:, :, 1]
         return np.array(label_mask, dtype=np.uint8)
 
-    def decode_segmap(self, temp, plot=False):
+    @classmethod
+    def decode_segmap(cls, temp, plot=False):
         # TODO:(@meetshah1995)
         # Verify that the color mapping is 1-to-1
         r = temp.copy()
         g = temp.copy()
         b = temp.copy()
-        for l in range(0, self.n_classes):
+        for l in range(0, cls.n_classes):
             r[temp == l] = 10 * (l % 10)
             g[temp == l] = l
             b[temp == l] = 0
@@ -130,15 +134,40 @@ class ADE20KLoader(AbstractDataset):
         else:
             return rgb
 
+
+class NormalADE20k(ADE20KLoader):
+
+    @classmethod
+    def lab_to_rgb(cls, x):
+        return x
+
+    @classmethod
+    def build_x_img(cls, x):
+        C, H, W = x.shape
+        x = x.view(-1, cls.n_classes)
+        labels = torch.arange(cls.n_classes).view(cls.n_classes, 1).float()
+        single_channel = x.mm(labels).view(H, W)
+        return torch.from_numpy(cls.decode_segmap(single_channel.numpy()))
+
+    def __init__(self, *args, **kwargs):
+        super(NormalADE20k, self).__init__(*args, **kwargs)
+
+    def __getitem__(self, index):
+        try:
+            img, lbl = super(NormalADE20k, self).__getitem__(index)
+            new_lbl = torch.zeros((self.n_classes,) + self.img_size)
+            for l in range(self.n_classes):
+                new_lbl[l, :, :] = (lbl == 0)
+            return new_lbl, img
+        except:
+            return self.__getitem__(random.randint(0, self.__len__()))
+
+
 class EdgeADE20k(ADE20KLoader):
 
     @classmethod
-    def build_visu(cls, writer, gen, x, y, device, index):
-        gray_scale = torch.cat([x for _ in range(3)], dim=1)
-        viz = vutils.make_grid(torch.cat([cls.lab_to_rgb(y).to(device), cls.lab_to_rgb(gen(x.to(device))),  gray_scale.to(device)], dim=0))
-        viz = torch.clamp(viz, -0.9999999, 0.999999)
-        writer.add_image('visu/', viz, index)
-
+    def lab_to_rgb(cls, x):
+        return x
 
     def __init__(self, *args, **kwargs):
         super(EdgeADE20k, self).__init__(*args, **kwargs)
@@ -155,6 +184,7 @@ class EdgeADE20k(ADE20KLoader):
             return lbl.squeeze(0), img
         except:
             return self.__getitem__(random.randint(0, self.__len__()))
+
 
 
 if __name__ == "__main__":

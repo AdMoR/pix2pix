@@ -14,8 +14,12 @@ class AbstractDataset(torchvision.datasets.ImageFolder):
         return x
 
     @classmethod
+    def build_x_img(cls, x):
+        return torch.cat([x for _ in range(3)], dim=1)
+
+    @classmethod
     def build_visu(cls, writer, gen, x, y, device, index):
-        gray_scale = torch.cat([x for _ in range(3)], dim=1)
+        gray_scale = cls.build_x_img(x)
         viz = vutils.make_grid(torch.cat([cls.lab_to_rgb(y).to(device), cls.lab_to_rgb(gen(x.to(device))),  gray_scale.to(device)], dim=0))
         viz = torch.clamp(viz, -0.9999999, 0.999999)
         writer.add_image('visu/', viz, index)

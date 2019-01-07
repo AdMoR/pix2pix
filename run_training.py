@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 
 from dataset_handler.colorisation_dataset import ColorizationDataset
 from dataset_handler.double_image_dataset import DoubleImageDataset
-from dataset_handler.ade20k_loader import EdgeADE20k
+from dataset_handler.ade20k_loader import EdgeADE20k, NormalADE20k
 from dataset_handler.edge2img_dataset import EdgesDataset
 from nn_utils.model import UNet, EncoderNet
 from nn_utils.colorisation_model import ColorUNet
@@ -29,28 +29,28 @@ train_transform = transforms.Compose(
                        torchvision.transforms.ColorJitter(0.1, 0.1, 0.1),
                        #torchvision.transforms.RandomAffine(5, [0.1, 0.1], [0.95, 1.05]),
                        transforms.ToTensor()])
-path = "/data/paintings"
+path = "/data/ADE20K_2016_07_26/"
 
-my_dataset = EdgeADE20k(path, is_transform=True)
+my_dataset = NormalADE20k(path, is_transform=True)
 #my_dataset = ColorizationDataset(path, transform=train_transform)
 #my_dataset = EdgesDataset(path, transform=train_transform)
 #my_dataset = DoubleImageDataset(path, transform=train_transform)
 train_data = torch.utils.data.DataLoader(my_dataset, batch_size=2, shuffle=True, num_workers=2)
 #gen = ColorUNet().to(device=device)
-gen = UNet([1,  64, 128, 256, 256, 512, 512, 512, 512, 512], target_dim=3).to(device=device)
+gen = UNet([151, 64, 128, 256, 256, 512, 512, 512, 512, 512], target_dim=3).to(device=device)
 #disc = EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device)
 
 print(gen)
 adv_loss = CombinedGANLoss([
-    AdversarialConditionalLoss(gen, EncoderNet([4, 64, 128, 256, 512, 512, 512]).to(device=device), device=device, loss="L2"),
-    AdversarialConditionalLoss(gen, EncoderNet([4, 64, 128, 256, 256, 512, 512, 512]).to(device=device), device=device, loss="L2"),
+    AdversarialConditionalLoss(gen, EncoderNet([154, 64, 128, 256, 512, 512, 512]).to(device=device), device=device),
+    AdversarialConditionalLoss(gen, EncoderNet([154, 64, 128, 256, 256, 512, 512, 512]).to(device=device), device=device),
 ], device)
 
 gen_optimizer = torch.optim.Adam(gen.parameters(), lr=0.0002, betas=(0.5, 0.999))
 disc_optimizer = torch.optim.Adam(adv_loss.disc_parameters(), lr=0.0002, betas=(0.5, 0.999))
 
 
-writer = tensorboardX.SummaryWriter(log_dir="./logs", comment="pix2pix")
+writer = tensorboardX.SummaryWriter(log_dir="./logs2", comment="pix2pix")
 for e in range(10000):
     for i, (x, y) in enumerate(train_data):
         disc_optimizer.zero_grad()

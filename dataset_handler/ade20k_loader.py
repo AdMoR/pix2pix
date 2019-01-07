@@ -135,34 +135,6 @@ class ADE20KLoader(AbstractDataset):
             return rgb
 
 
-class NormalADE20k(ADE20KLoader):
-
-    @classmethod
-    def lab_to_rgb(cls, x):
-        return x
-
-    @classmethod
-    def build_x_img(cls, x):
-        C, H, W = x.shape
-        x = x.view(-1, cls.n_classes)
-        labels = torch.arange(cls.n_classes).view(cls.n_classes, 1).float()
-        single_channel = x.mm(labels).view(H, W)
-        return torch.from_numpy(cls.decode_segmap(single_channel.numpy()))
-
-    def __init__(self, *args, **kwargs):
-        super(NormalADE20k, self).__init__(*args, **kwargs)
-
-    def __getitem__(self, index):
-        try:
-            img, lbl = super(NormalADE20k, self).__getitem__(index)
-            new_lbl = torch.zeros((self.n_classes,) + self.img_size)
-            for l in range(self.n_classes):
-                new_lbl[l, :, :] = (lbl == 0)
-            return new_lbl, img
-        except:
-            return self.__getitem__(random.randint(0, self.__len__()))
-
-
 class EdgeADE20k(ADE20KLoader):
 
     @classmethod
@@ -176,12 +148,45 @@ class EdgeADE20k(ADE20KLoader):
             dim=0)
         self.weight = filters.float()
 
+    @classmethod
+    def build_edge_img(cls, lbl, weight):
+        lbl = torch.abs(F.conv2d(lbl.float().unsqueeze(0).unsqueeze(0), weight, padding=1, groups=1))
+        lbl[lbl > 0] = 1
+        return lbl.squeeze(0)
+
     def __getitem__(self, index):
         try:
             img, lbl = super(EdgeADE20k, self).__getitem__(index)
-            lbl = torch.abs(F.conv2d(lbl.float().unsqueeze(0).unsqueeze(0), self.weight, padding=1, groups=1))
-            lbl[lbl > 0] = 1
-            return lbl.squeeze(0), img
+            lbl = self.build_edge_img(lbl, self.weight)
+            return lbl, img
+        except:
+            return self.__getitem__(random.randint(0, self.__len__()))
+
+
+class NormalADE20k(EdgeADE20k):
+
+    @classmethod
+    def build_x_img(cls, x):
+        B, C, H, W = x.shape
+        final = list()
+        for b in range(B):
+            out = torch.zeros(H, W)
+            for l in range(cls.n_classes):
+                out += l * (x[b, l, :, :] == 1).float()
+            img = torch.from_numpy(cls.decode_segmap(out.long().numpy())).unsqueeze(0)
+            img = img.permute(0, 3, 1, 2)
+            final.append(img)
+        out = torch.cat(final, dim=0).float()
+        return out
+
+    def __getitem__(self, index):
+        try:
+            img, lbl = super(EdgeADE20k, self).__getitem__(index)
+            new_lbl = torch.zeros((self.n_classes + 1,) + self.img_size)
+            for l in range(self.n_classes):
+                new_lbl[l, :, :] = (lbl == l)
+            new_lbl[150, :, :] = self.build_edge_img(lbl, self.weight)
+            return new_lbl, img
         except:
             return self.__getitem__(random.randint(0, self.__len__()))
 

@@ -8,8 +8,8 @@
 
 
 ## Dataset modes
-- Colorisation
-- Edge2Something (see example, edge to Delaunay)
+- Colorisation 
+- Edge2Something (see examples, edge to Delaunay or edge to ADE20k)
 
 
 ## Using tensorboard to visualize the training
@@ -19,8 +19,15 @@ In this example, delaunay paintings texture are learned from the edges
 ![Tensorboard visu](pics/visu.png)
 
 
+For the ADE20k edges dataset, the training visualisation helps to see when the system stagnates.
+![Generator part](pics/training_ADE20k_edge_generator.png)
+![Discriminator part](pics/training_ADE20k_edge_two_discriminators.png)
+
+
 ## What can I get ?
 Mostly bad modern art for the edge to Delaunay
 ![Modern art 1](pics/exhibit_1.jpg)
 ![Modern Art 2](pics/exhibit_2.jpg)
+
+
 
